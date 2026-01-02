@@ -1,5 +1,6 @@
 import type { App } from "obsidian";
 import { PluginSettingTab, Setting } from "obsidian";
+
 import type LeetCodeTemplatePlugin from "./main";
 
 export interface LeetCodeTemplateSettings {
@@ -34,10 +35,10 @@ export class LeetCodeSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    containerEl.createEl("h2", { text: "LeetCode Template" });
+    new Setting(containerEl).setName("LeetCode template").setHeading();
 
     new Setting(containerEl)
-      .setName("csrftoken")
+      .setName("CSRF token")
       .setDesc("Cookie value csrftoken from leetcode.com.")
       .addText((text) =>
         text
@@ -50,7 +51,7 @@ export class LeetCodeSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("LEETCODE_SESSION")
+      .setName("LeetCode session")
       .setDesc("Cookie value LEETCODE_SESSION from leetcode.com.")
       .addText((text) =>
         text

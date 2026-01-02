@@ -1,4 +1,5 @@
 import { htmlToMarkdown } from "obsidian";
+
 import type { QuestionMetadata, SubmissionSolution } from "./leetcode";
 
 export type Language = "en" | "ru";

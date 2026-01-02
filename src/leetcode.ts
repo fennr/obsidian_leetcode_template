@@ -1,5 +1,56 @@
 import { requestUrl, type RequestUrlParam } from "obsidian";
 
+type QuestionQueryResponse = {
+  data?: {
+    question?: {
+      questionId?: string;
+      questionFrontendId?: string;
+      title?: string;
+      titleSlug?: string;
+      difficulty?: string;
+      content?: string;
+      similarQuestions?: unknown;
+      topicTags?: Array<{ name?: string | null; slug?: string | null }>;
+    };
+  };
+};
+
+type ProblemsListResponse = {
+  stat_status_pairs?: Array<{
+    stat?: { frontend_question_id?: string | number; question__title_slug?: string };
+  }>;
+};
+
+type SubmissionListResponse = {
+  data?: {
+    questionSubmissionList?: {
+      submissions?: Array<{
+        id?: string | number;
+        statusDisplay?: string;
+        lang?: string;
+        runtime?: string;
+        memory?: string;
+        timestamp?: number | string;
+      }>;
+    };
+  };
+};
+
+type SubmissionDetailsResponse = {
+  data?: {
+    submissionDetails?: {
+      id?: string | number;
+      code?: string;
+      lang?: { name?: string };
+      runtime?: string;
+      runtimeDisplay?: string;
+      memory?: string;
+      memoryDisplay?: string;
+      timestamp?: number;
+    };
+  };
+};
+
 const QUESTION_QUERY = `
   query questionData($titleSlug: String!) {
     question(titleSlug: $titleSlug) {
@@ -100,14 +151,16 @@ export async function fetchQuestion(
     throw new Error(`LeetCode вернул статус ${response.status}`);
   }
 
-  const payload = (response.json as any) ?? JSON.parse(response.text);
-  const question = payload?.data?.question;
+  const rawPayload: unknown = response.json ?? JSON.parse(response.text);
+  const payload = ensureObject<QuestionQueryResponse>(rawPayload, { data: {} });
+  const question = payload.data?.question;
   if (!question) {
     throw new Error("Не удалось получить данные задачи (возможно, устаревший cookie)");
   }
 
   const tags: string[] =
-    question.topicTags?.map((tag: { name?: string }) => tag?.name).filter(Boolean) ?? [];
+    question.topicTags?.map((tag) => tag?.name).filter((name): name is string => Boolean(name)) ??
+    [];
 
   return {
     id: question.questionId ?? undefined,
@@ -127,12 +180,8 @@ function parseSimilarQuestions(raw: unknown): SimilarQuestion[] {
     const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .map((item) => ({
-        title: item.title as string,
-        slug: item.titleSlug as string,
-        difficulty: item.difficulty as string
-      }))
-      .filter((q) => q.title && q.slug);
+      .map((item) => toSimilarQuestion(item))
+      .filter((q): q is SimilarQuestion => Boolean(q));
   } catch (error) {
     console.warn("Не удалось распарсить similarQuestions", error);
     return [];
@@ -154,8 +203,9 @@ export async function fetchSlugByNumber(
     return null;
   }
 
-  const payload = (response.json as any) ?? JSON.parse(response.text);
-  const items: any[] = payload?.stat_status_pairs ?? [];
+  const rawPayload: unknown = response.json ?? JSON.parse(response.text);
+  const payload = ensureObject<ProblemsListResponse>(rawPayload, {});
+  const items = payload.stat_status_pairs ?? [];
   const target = items.find(
     (item) => String(item?.stat?.frontend_question_id) === String(frontendQuestionId)
   );
@@ -210,11 +260,13 @@ async function fetchAcceptedSubmissions(
       throw: false
     });
 
-  let submissions: any[] = [];
-  if (fallback.status === 200) {
-    const fallbackPayload = (fallback.json as any) ?? JSON.parse(fallback.text);
-    submissions = fallbackPayload?.data?.questionSubmissionList?.submissions ?? [];
-  } else {
+  const rawPayload: unknown = fallback.json ?? JSON.parse(fallback.text);
+  const fallbackPayload = ensureObject<SubmissionListResponse>(rawPayload, {
+    data: { questionSubmissionList: { submissions: [] } }
+  });
+  const submissions =
+    fallbackPayload.data?.questionSubmissionList?.submissions?.filter(Boolean) ?? [];
+  if (fallback.status !== 200) {
     console.warn("questionSubmissionList status", {
       status: fallback.status,
       text: fallback.text?.slice(0, 400)
@@ -276,8 +328,9 @@ async function fetchSubmissionDetails(
     return null;
   }
 
-  const detailPayload = (detailResponse.json as any) ?? JSON.parse(detailResponse.text);
-  const details = detailPayload?.data?.submissionDetails;
+  const rawPayload: unknown = detailResponse.json ?? JSON.parse(detailResponse.text);
+  const detailPayload = ensureObject<SubmissionDetailsResponse>(rawPayload, {});
+  const details = detailPayload.data?.submissionDetails;
   if (!details?.code) return null;
 
   return {
@@ -316,5 +369,23 @@ function buildHeaders(params: {
 function extractCookie(cookieHeader: string, key: string): string | null {
   const match = cookieHeader.match(new RegExp(`${key}=([^;\\s]+)`));
   return match ? match[1] ?? null : null;
+}
+
+function ensureObject<T>(value: unknown, fallback: T): T {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as T;
+  }
+  return fallback;
+}
+
+function toSimilarQuestion(item: unknown): SimilarQuestion | null {
+  if (!item || typeof item !== "object") return null;
+  const candidate = item as { title?: string; titleSlug?: string; difficulty?: string };
+  if (!candidate.title || !candidate.titleSlug) return null;
+  return {
+    title: candidate.title,
+    slug: candidate.titleSlug,
+    difficulty: candidate.difficulty ?? ""
+  };
 }
 

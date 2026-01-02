@@ -1,32 +1,48 @@
 import {
   App,
   Modal,
+  normalizePath,
   Notice,
   Plugin,
   Setting,
   TFile,
-  TFolder,
-  normalizePath
-} from "obsidian";
-import { LeetCodeSettingTab, DEFAULT_SETTINGS } from "./settings";
+  TFolder} from "obsidian";
+
 import {
-  buildNoteContent,
-  formatSolutionsSection,
-  SOLUTIONS_HEADERS,
-  type Language
-} from "./template";
-import {
-  fetchQuestion,
   fetchAcceptedSolutions,
-  fetchSlugByNumber,
   fetchLatestAcceptedSolution,
+  fetchQuestion,
+  fetchSlugByNumber,
   type QuestionMetadata,
   type SubmissionSolution
 } from "./leetcode";
+import { DEFAULT_SETTINGS,LeetCodeSettingTab } from "./settings";
+import {
+  buildNoteContent,
+  formatSolutionsSection,
+  type Language,
+  SOLUTIONS_HEADERS} from "./template";
 
-type LocaleStrings = typeof LOCALES.en;
+type LocaleStrings = {
+  commands: { createNote: string; importSolution: string };
+  modal: { title: string; label: string; placeholder: string; button: string };
+  notices: {
+    resolveSlugFail: string;
+    fetchError: string;
+    unknownRequestError: string;
+    created: string;
+    createFileFail: string;
+    noActiveNote: string;
+    resolveFromFileFail: string;
+    noCookies: string;
+    noAccepted: string;
+    updated: string;
+    importError: string;
+  };
+  errors: { pathConflict: (path: string) => string };
+};
 
-const LOCALES = {
+const LOCALES: Record<Language, LocaleStrings> = {
   en: {
     commands: {
       createNote: "Create note from LeetCode link",
@@ -47,7 +63,7 @@ const LOCALES = {
       noActiveNote: "No active note",
       resolveFromFileFail: "Could not resolve problem (no link in frontmatter)",
       noCookies: "Set csrftoken and LEETCODE_SESSION in settings",
-      noAccepted: "No Accepted solutions found",
+      noAccepted: "No accepted solutions found",
       updated: "Solutions updated",
       importError: "Failed to import solution"
     },
@@ -83,10 +99,10 @@ const LOCALES = {
       pathConflict: (path: string) => `Путь ${path} уже занят файлом.`
     }
   }
-} satisfies Record<Language, any>;
+};
 
 function getLocaleStrings(language: Language): LocaleStrings {
-  return (LOCALES as Record<string, LocaleStrings>)[language] ?? LOCALES.en;
+  return LOCALES[language] ?? LOCALES.en;
 }
 
 export default class LeetCodeTemplatePlugin extends Plugin {
@@ -237,7 +253,7 @@ export default class LeetCodeTemplatePlugin extends Plugin {
       await this.ensureFolder(normalizedFolder);
     }
 
-    const finalPath = await this.resolveCollision(requestedPath);
+    const finalPath = this.resolveCollision(requestedPath);
     await this.app.vault.create(finalPath, content);
     return finalPath;
   }
@@ -271,7 +287,7 @@ export default class LeetCodeTemplatePlugin extends Plugin {
     }
   }
 
-  private async resolveCollision(path: string): Promise<string> {
+  private resolveCollision(path: string): string {
     if (!this.app.vault.getAbstractFileByPath(path)) {
       return path;
     }
@@ -311,7 +327,7 @@ class LinkInputModal extends Modal {
   override onOpen(): void {
     const { contentEl } = this;
     contentEl.empty();
-    contentEl.createEl("h2", { text: this.strings.modal.title });
+    new Setting(contentEl).setName(this.strings.modal.title).setHeading();
 
     let inputValue = "";
 
