@@ -3,7 +3,7 @@
   "name": "LeetCode Template",
   "version": "0.1.0",
   "minAppVersion": "1.5.0",
-  "description": "Генерирует заметку-шаблон по ссылке LeetCode с метаданными и описанием.",
+  "description": "Generate LeetCode problem templates in your notes.",
   "author": "fennr",
   "authorUrl": "https://github.com/fennr",
   "isDesktopOnly": false
