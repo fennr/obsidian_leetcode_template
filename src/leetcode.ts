@@ -177,7 +177,7 @@ export async function fetchQuestion(
 function parseSimilarQuestions(raw: unknown): SimilarQuestion[] {
   if (!raw) return [];
   try {
-    const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+    const parsed: unknown = typeof raw === "string" ? JSON.parse(raw) : raw;
     if (!Array.isArray(parsed)) return [];
     return parsed
       .map((item) => toSimilarQuestion(item))

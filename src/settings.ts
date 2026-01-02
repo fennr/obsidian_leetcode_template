@@ -1,5 +1,4 @@
-import type { App } from "obsidian";
-import { PluginSettingTab, Setting } from "obsidian";
+import { type App,PluginSettingTab, Setting } from "obsidian";
 
 import type LeetCodeTemplatePlugin from "./main";
 
@@ -35,7 +34,7 @@ export class LeetCodeSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName("LeetCode template").setHeading();
+    new Setting(containerEl).setName("Template").setHeading();
 
     new Setting(containerEl)
       .setName("CSRF token")
@@ -103,7 +102,7 @@ export class LeetCodeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Insert all solutions")
-      .setDesc("If enabled, add all Accepted solutions (deduplicated).")
+      .setDesc("If enabled, add all accepted solutions (deduplicated).")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.insertAllSolutions)

@@ -16,7 +16,7 @@ import {
   type QuestionMetadata,
   type SubmissionSolution
 } from "./leetcode";
-import { DEFAULT_SETTINGS,LeetCodeSettingTab } from "./settings";
+import { DEFAULT_SETTINGS, LeetCodeSettingTab } from "./settings";
 import {
   buildNoteContent,
   formatSolutionsSection,
@@ -128,8 +128,10 @@ export default class LeetCodeTemplatePlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    const saved = await this.loadData();
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, saved);
+    const saved: unknown = await this.loadData();
+    const normalized =
+      saved && typeof saved === "object" ? (saved as Partial<typeof DEFAULT_SETTINGS>) : null;
+    this.settings = { ...DEFAULT_SETTINGS, ...(normalized ?? {}) };
   }
 
   async saveSettings(): Promise<void> {
@@ -384,7 +386,7 @@ function sanitizeForPath(value: string): string {
 
 async function extractSlugFromFile(app: App, file: TFile): Promise<string | null> {
   const cache = app.metadataCache.getFileCache(file);
-  const linkField = cache?.frontmatter?.link;
+  const linkField: unknown = cache?.frontmatter?.link;
   if (typeof linkField === "string") {
     const slug = extractSlug(linkField);
     if (slug) return slug;
