@@ -1,0 +1,22 @@
+.DS_Store
+node_modules/
+dist/
+build/
+*.log
+*.tmp
+*.swp
+*.swo
+
+# TypeScript
+*.tsbuildinfo
+
+# Obsidian plugin build outputs
+main.js.map
+main.js.LICENSE.txt
+
+# Env / editor
+.env
+.env.local
+.idea/
+.vscode/
+
