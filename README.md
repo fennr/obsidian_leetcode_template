@@ -1,39 +1,50 @@
 # LeetCode Template
 
-Плагин Obsidian, который по ссылке или номеру задачи LeetCode создает заметку с фронтматтером, описанием, списком похожих задач и вставляет последнее или все Accepted-решения.
+An Obsidian plugin that creates a structured note from a LeetCode problem link or number. It fetches metadata, the problem description, similar questions, and your accepted solution(s).
 
-## Возможности
-- Команда «Создать заметку по ссылке LeetCode» / “Create note from LeetCode link”: спрашивает ссылку или номер, тянет метаданные, описание и решения, создает файл в выбранной папке.
-- Команда «Импортировать решение для текущей задачи» / “Import solution for current problem”: по полю `link` во фронтматтере активной заметки добавляет новые Accepted-решения без дублей.
-- Кастомный шаблон имени файла `{{number}}-{{slug}}` и целевая папка.
-- Опциональная вставка описания задачи и всех решений (или только последнего).
-- Автоматическое построение секций: фронтматтер, «Описание», «Моя идея», «Оптимальное решение», «Похожие вопросы», «Решения».
+## Features
 
-## Требования
-- Obsidian 1.5.0+.
-- Куки с leetcode.com: `csrftoken` и `LEETCODE_SESSION` (нужны для запросов GraphQL).
+- **Create note from LeetCode link** — prompts for a URL or problem number, fetches metadata, description, and solutions, then creates a note in your target folder.
+- **Import solution for current problem** — reads the `link` field from the active note's frontmatter and appends new accepted solutions without duplicates.
+- Custom filename template (`{{number}}`, `{{slug}}`, `{{title}}`) and target folder.
+- Optional problem description and all accepted solutions (or only the latest one).
+- Auto-generated sections: frontmatter, Description, My idea, Optimal solution, Similar questions (optional), Solutions.
 
-## Установка и сборка
+## Requirements
+
+- Obsidian 1.5.0+
+- LeetCode cookies: `csrftoken` and `LEETCODE_SESSION` (required for GraphQL requests)
+
+## Installation and build
+
 ```bash
 bun install
 bun run build
 ```
-Собранные файлы `main.js` и `manifest.json` скопируйте в `.obsidian/plugins/leetcode-template/` и перезапустите плагин.
 
-Файл `versions.json` хранится в корне репозитория для совместимости со старыми версиями Obsidian и не включается в GitHub Release.
+Copy `main.js` and `manifest.json` into `.obsidian/plugins/leetcode-template/` and reload the plugin.
 
-## Настройки
-- `csrftoken` — значение cookie с leetcode.com.
-- `LEETCODE_SESSION` — значение cookie с leetcode.com.
-- `Каталог заметок` — папка для новых файлов (может быть пусто).
-- `Шаблон имени файла` — плейсхолдеры `{{number}}`, `{{slug}}`, `{{title}}`.
-- `Вставлять описание` — включать/выключать описание задачи.
-- `Добавлять все решения` — вставлять все Accepted решения вместо последнего.
-- `Language` — переключатель en/ru; меняет язык команд, уведомлений, модалки и текста шаблона.
+`versions.json` stays in the repository root for compatibility with older Obsidian versions and is not included in GitHub Releases.
 
-## Использование
-- В палитре команд Obsidian выберите нужную команду плагина.
-- Для импорта решений убедитесь, что во фронтматтере активной заметки есть `link: https://leetcode.com/problems/.../`.
+## Settings
 
-## Формат заметки
-Фронтматтер включает `title`, `number`, `difficulty`, `tags`, `link`. Далее разделы («Описание»/`Description`, «Моя идея»/`My idea`, «Оптимальное решение»/`Optimal solution`, опционально «Похожие вопросы»/`Similar questions`, «Решения»/`Solutions`) с кодом, временем и памятью. Дубликаты решений удаляются, новые решения добавляются в конец секции.
+- **CSRF token** — `csrftoken` cookie value from leetcode.com
+- **LeetCode session** — `LEETCODE_SESSION` cookie value from leetcode.com
+- **Notes folder** — target folder for new notes (can be empty)
+- **Filename template** — placeholders: `{{number}}`, `{{slug}}`, `{{title}}`
+- **Include description** — include or skip the problem description
+- **Insert all solutions** — insert all accepted solutions instead of only the latest
+- **Language** — `en` / `ru`; switches commands, notices, modal text, and template labels
+
+## Usage
+
+1. Open the command palette and run a plugin command.
+2. To import solutions, make sure the active note's frontmatter contains `link: https://leetcode.com/problems/.../`.
+
+## Note format
+
+Frontmatter includes `title`, `number`, `difficulty`, `tags`, and `link`. Body sections: Description, My idea, Optimal solution, optional Similar questions, and Solutions with code, runtime, and memory. Duplicate solutions are removed; new ones are appended to the Solutions section.
+
+## Русский
+
+Плагин создаёт заметку по ссылке или номеру задачи LeetCode: подтягивает метаданные, описание, похожие задачи и Accepted-решения. Команды и интерфейс доступны на русском — включите `Language: ru` в настройках.
