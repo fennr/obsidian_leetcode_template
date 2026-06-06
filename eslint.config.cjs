@@ -1,7 +1,8 @@
 const js = require("@eslint/js");
 const tsPlugin = require("@typescript-eslint/eslint-plugin");
 const tsParser = require("@typescript-eslint/parser");
-const importPlugin = require("eslint-plugin-import");
+const { createTypeScriptImportResolver } = require("eslint-import-resolver-typescript");
+const { importX } = require("eslint-plugin-import-x");
 const simpleImportSort = require("eslint-plugin-simple-import-sort");
 const obsidianmd = require("eslint-plugin-obsidianmd").default;
 const globals = require("globals");
@@ -10,6 +11,8 @@ module.exports = [
   {
     ignores: ["node_modules", "main.js", "bun.lock"]
   },
+  importX.flatConfigs.recommended,
+  importX.flatConfigs.typescript,
   {
     files: ["**/*.ts"],
     languageOptions: {
@@ -27,24 +30,22 @@ module.exports = [
     },
     plugins: {
       "@typescript-eslint": tsPlugin,
-      import: importPlugin,
+      "import-x": importX,
       "simple-import-sort": simpleImportSort,
       obsidianmd
     },
     settings: {
-      "import/resolver": {
-        typescript: {
+      "import-x/resolver-next": [
+        createTypeScriptImportResolver({
           project: "./tsconfig.json"
-        }
-      },
-      "import/core-modules": ["obsidian"]
+        })
+      ],
+      "import-x/core-modules": ["obsidian"]
     },
     rules: {
       ...js.configs.recommended.rules,
       ...tsPlugin.configs.recommended.rules,
       ...tsPlugin.configs["recommended-requiring-type-checking"].rules,
-      ...importPlugin.configs.recommended.rules,
-      ...importPlugin.configs.typescript.rules,
       "obsidianmd/commands/no-command-in-command-id": "error",
       "obsidianmd/commands/no-command-in-command-name": "error",
       "obsidianmd/commands/no-default-hotkeys": "error",
@@ -84,10 +85,9 @@ module.exports = [
         "error",
         { assertionStyle: "as", objectLiteralTypeAssertions: "never" }
       ],
-      "import/order": "off",
+      "import-x/order": "off",
       "simple-import-sort/imports": "warn",
       "simple-import-sort/exports": "warn"
     }
   }
 ];
-
