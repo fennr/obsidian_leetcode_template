@@ -34,14 +34,12 @@ export class LeetCodeSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl).setName("Template").setHeading();
-
     new Setting(containerEl)
       .setName("CSRF token")
-      .setDesc("Cookie value csrftoken from leetcode.com.")
+      .setDesc("Cookie value for csrftoken from LeetCode.")
       .addText((text) =>
         text
-          .setPlaceholder("csrftoken=...")
+          .setPlaceholder("Enter csrftoken value")
           .setValue(this.plugin.settings.csrftoken)
           .onChange(async (value) => {
             this.plugin.settings.csrftoken = value.trim();
@@ -51,10 +49,10 @@ export class LeetCodeSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("LeetCode session")
-      .setDesc("Cookie value LEETCODE_SESSION from leetcode.com.")
+      .setDesc("Cookie value for LEETCODE_SESSION from LeetCode.")
       .addText((text) =>
         text
-          .setPlaceholder("LEETCODE_SESSION=...")
+          .setPlaceholder("Enter LEETCODE_SESSION value")
           .setValue(this.plugin.settings.leetcodeSession)
           .onChange(async (value) => {
             this.plugin.settings.leetcodeSession = value.trim();

@@ -18,7 +18,9 @@
 bun install
 bun run build
 ```
-Собранные файлы `main.js`, `manifest.json`, `versions.json` скопируйте в `.obsidian/plugins/leetcode-template/` и перезапустите плагин.
+Собранные файлы `main.js` и `manifest.json` скопируйте в `.obsidian/plugins/leetcode-template/` и перезапустите плагин.
+
+Файл `versions.json` хранится в корне репозитория для совместимости со старыми версиями Obsidian и не включается в GitHub Release.
 
 ## Настройки
 - `csrftoken` — значение cookie с leetcode.com.

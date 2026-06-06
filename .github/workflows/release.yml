@@ -5,6 +5,11 @@ on:
     tags:
       - "*"
 
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
 jobs:
   build-and-release:
     runs-on: ubuntu-latest
@@ -25,19 +30,26 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Lint
+        run: bun run lint
+
       - name: Build plugin
         run: bun run build
 
       - name: Verify artifacts
-        run: ls -l main.js manifest.json versions.json
+        run: ls -l main.js manifest.json
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: main.js
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          generate_release_notes: true
           files: |
             main.js
             manifest.json
-            versions.json
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-

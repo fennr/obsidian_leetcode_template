@@ -163,7 +163,6 @@ export default class LeetCodeTemplatePlugin extends Plugin {
         solutions = single ? [single] : [];
       }
     } catch (error) {
-      console.error(error);
       const message = error instanceof Error ? error.message : strings.notices.unknownRequestError;
       new Notice(`${strings.notices.fetchError}: ${message}`);
       return;
@@ -181,7 +180,6 @@ export default class LeetCodeTemplatePlugin extends Plugin {
       new Notice(`${strings.notices.created}: ${filePath}`);
       await this.app.workspace.openLinkText(filePath, "", false);
     } catch (error) {
-      console.error(error);
       const message = error instanceof Error ? error.message : strings.notices.createFileFail;
       new Notice(message);
     }
@@ -223,7 +221,6 @@ export default class LeetCodeTemplatePlugin extends Plugin {
       await this.app.vault.modify(file, updated);
       new Notice(strings.notices.updated);
     } catch (error) {
-      console.error("Import solution error", error);
       const message = error instanceof Error ? error.message : strings.notices.importError;
       new Notice(message);
     }

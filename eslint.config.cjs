@@ -76,7 +76,7 @@ module.exports = [
           brands: ["LeetCode", "CSRF", "LEETCODE_SESSION", "Obsidian"]
         }
       ],
-      "no-console": ["error", { allow: ["warn", "error", "debug"] }],
+      "no-console": "error",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unnecessary-type-assertion": "error",
       "@typescript-eslint/require-await": "error",

@@ -182,8 +182,7 @@ function parseSimilarQuestions(raw: unknown): SimilarQuestion[] {
     return parsed
       .map((item) => toSimilarQuestion(item))
       .filter((q): q is SimilarQuestion => Boolean(q));
-  } catch (error) {
-    console.warn("Не удалось распарсить similarQuestions", error);
+  } catch {
     return [];
   }
 }
@@ -199,7 +198,6 @@ export async function fetchSlugByNumber(
   });
 
   if (response.status !== 200) {
-    console.warn("Не удалось получить список задач по номеру", response.status);
     return null;
   }
 
@@ -266,15 +264,7 @@ async function fetchAcceptedSubmissions(
   });
   const submissions =
     fallbackPayload.data?.questionSubmissionList?.submissions?.filter(Boolean) ?? [];
-  if (fallback.status !== 200) {
-    console.warn("questionSubmissionList status", {
-      status: fallback.status,
-      text: fallback.text?.slice(0, 400)
-    });
-  }
-
   if (!Array.isArray(submissions) || submissions.length === 0) {
-    console.warn("submissions list is empty");
     return [];
   }
 
@@ -321,10 +311,6 @@ async function fetchSubmissionDetails(
   });
 
   if (detailResponse.status !== 200) {
-    console.warn("Не удалось получить детали сабмита", {
-      status: detailResponse.status,
-      text: detailResponse.text?.slice(0, 400)
-    });
     return null;
   }
 
