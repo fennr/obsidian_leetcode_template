@@ -3,7 +3,7 @@ import type { AuthCookies } from "./types";
 const PARTITION = "persist:leetcode-template";
 const LOGIN_URL = "https://leetcode.com/accounts/login/";
 const COOKIE_URL = "https://leetcode.com/";
-const LOGIN_CAPTURE_TIMEOUT_MS = 30_000;
+const LOGIN_CAPTURE_TIMEOUT_MS = 120_000;
 
 type CjsRequire = (id: string) => unknown;
 
@@ -65,6 +65,7 @@ interface ElectronSession {
 interface ElectronWebContents {
   session: ElectronSession;
   on(event: string, listener: () => void): void;
+  getURL?: () => string;
 }
 
 interface ElectronBrowserWindow {
@@ -127,7 +128,30 @@ function resolveBrowserWindow(): BrowserWindowCtor {
   return BrowserWindow;
 }
 
-export function openLogin(): Promise<OpenLoginResult> {
+export function isReadyToCaptureAuth(url: string): boolean {
+  if (!url) return false;
+  try {
+    const parsed = new URL(url);
+    if (parsed.hostname !== "leetcode.com" && parsed.hostname !== "www.leetcode.com") {
+      return false;
+    }
+    const path = parsed.pathname;
+    // Anonymous LEETCODE_SESSION is already set on the login page; only capture after leave.
+    if (path.startsWith("/accounts/login") || path.startsWith("/accounts/signup")) {
+      return false;
+    }
+    if (path.startsWith("/accounts/")) {
+      return false;
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function openLogin(): Promise<OpenLoginResult> {
+  // Drop stale/anonymous partition cookies so we don't capture a dead session on first paint.
+  await clearLeetCodePartitionCookies();
   const BrowserWindowCtor = resolveBrowserWindow();
 
   return new Promise((resolve) => {
@@ -175,11 +199,19 @@ export function openLogin(): Promise<OpenLoginResult> {
 
     const tryCapture = async (): Promise<void> => {
       if (settled) return;
-      const extracted = await tryCaptureCookies(win.webContents.session.cookies);
-      if (extracted && !settled) {
-        settle({ kind: "success", cookies: extracted });
-        safeClose();
+      let url = "";
+      try {
+        url = win.webContents.getURL?.() ?? "";
+      } catch {
+        url = "";
       }
+      if (!isReadyToCaptureAuth(url)) return;
+
+      const extracted = await tryCaptureCookies(win.webContents.session.cookies);
+      if (!extracted || settled) return;
+
+      settle({ kind: "success", cookies: extracted });
+      safeClose();
     };
 
     win.webContents.on("did-navigate", () => {
