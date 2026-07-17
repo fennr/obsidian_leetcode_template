@@ -1,10 +1,12 @@
-import { type App,PluginSettingTab, Setting } from "obsidian";
+import { type App, PluginSettingTab, Setting } from "obsidian";
 
+import { CookiePasteModal } from "./auth/CookiePasteModal";
 import type LeetCodeTemplatePlugin from "./main";
 
 export interface LeetCodeTemplateSettings {
   csrftoken: string;
   leetcodeSession: string;
+  username: string | null;
   targetFolder: string;
   filenameTemplate: string;
   includeDescription: boolean;
@@ -15,6 +17,7 @@ export interface LeetCodeTemplateSettings {
 export const DEFAULT_SETTINGS: LeetCodeTemplateSettings = {
   csrftoken: "",
   leetcodeSession: "",
+  username: null,
   targetFolder: "",
   filenameTemplate: "{{number}}-{{slug}}",
   includeDescription: true,
@@ -34,30 +37,37 @@ export class LeetCodeSettingTab extends PluginSettingTab {
     const { containerEl } = this;
     containerEl.empty();
 
-    new Setting(containerEl)
-      .setName("CSRF token")
-      .setDesc("Cookie value for csrftoken from LeetCode.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter csrftoken value")
-          .setValue(this.plugin.settings.csrftoken)
-          .onChange(async (value) => {
-            this.plugin.settings.csrftoken = value.trim();
-            await this.plugin.saveSettings();
-          })
-      );
+    const loggedIn = this.plugin.auth.isLoggedIn();
+    const username = this.plugin.settings.username;
+    const statusText = loggedIn
+      ? username
+        ? `Logged in as ${username}`
+        : "Logged in"
+      : "Not logged in";
 
     new Setting(containerEl)
-      .setName("LeetCode session")
-      .setDesc("Cookie value for LEETCODE_SESSION from LeetCode.")
-      .addText((text) =>
-        text
-          .setPlaceholder("Enter LEETCODE_SESSION value")
-          .setValue(this.plugin.settings.leetcodeSession)
-          .onChange(async (value) => {
-            this.plugin.settings.leetcodeSession = value.trim();
-            await this.plugin.saveSettings();
+      .setName("LeetCode account")
+      .setDesc(statusText)
+      .addButton((btn) =>
+        btn
+          .setButtonText(loggedIn ? "Log out" : "Log in")
+          .setCta(!loggedIn)
+          .onClick(async () => {
+            if (loggedIn) {
+              await this.plugin.auth.logout();
+            } else {
+              await this.plugin.auth.login();
+            }
+            this.display();
           })
+      )
+      .addButton((btn) =>
+        btn.setButtonText("Paste cookies").onClick(() => {
+          new CookiePasteModal(this.plugin.app, async (cookies) => {
+            await this.plugin.auth.loginManual(cookies);
+            this.display();
+          }).open();
+        })
       );
 
     new Setting(containerEl)
@@ -125,4 +135,3 @@ export class LeetCodeSettingTab extends PluginSettingTab {
       );
   }
 }
-

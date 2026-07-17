@@ -102,6 +102,40 @@ const SUBMISSION_DETAIL_QUERY = `
   }
 `;
 
+const WHOAMI_QUERY = `
+  query {
+    userStatus {
+      isSignedIn
+      username
+    }
+  }
+`;
+
+export class SessionExpiredError extends Error {
+  constructor(message = "Session expired") {
+    super(message);
+    this.name = "SessionExpiredError";
+  }
+}
+
+export function isSessionExpiredError(error: unknown): boolean {
+  return error instanceof SessionExpiredError;
+}
+
+export interface WhoamiResult {
+  isSignedIn: boolean;
+  username: string | null;
+}
+
+type WhoamiResponse = {
+  data?: {
+    userStatus?: {
+      isSignedIn?: boolean;
+      username?: string | null;
+    };
+  };
+};
+
 export interface SimilarQuestion {
   title: string;
   slug: string;
@@ -147,6 +181,10 @@ export async function fetchQuestion(
 
   const response = await requestUrl(request);
 
+  if (response.status === 401 || response.status === 403) {
+    throw new SessionExpiredError();
+  }
+
   if (response.status !== 200) {
     throw new Error(`LeetCode вернул статус ${response.status}`);
   }
@@ -155,6 +193,9 @@ export async function fetchQuestion(
   const payload = ensureObject<QuestionQueryResponse>(rawPayload, { data: {} });
   const question = payload.data?.question;
   if (!question) {
+    if (cookie.trim()) {
+      throw new SessionExpiredError();
+    }
     throw new Error("Не удалось получить данные задачи (возможно, устаревший cookie)");
   }
 
@@ -187,6 +228,33 @@ function parseSimilarQuestions(raw: unknown): SimilarQuestion[] {
   }
 }
 
+export async function fetchWhoami(cookie: string): Promise<WhoamiResult | null> {
+  const response = await requestUrl({
+    url: "https://leetcode.com/graphql",
+    method: "POST",
+    body: JSON.stringify({ query: WHOAMI_QUERY }),
+    headers: buildHeaders({ titleSlug: "", cookie, referer: "https://leetcode.com/" }),
+    throw: false
+  });
+
+  if (response.status === 401 || response.status === 403) {
+    return { isSignedIn: false, username: null };
+  }
+  if (response.status !== 200) {
+    return null;
+  }
+
+  const rawPayload: unknown = response.json ?? JSON.parse(response.text);
+  const payload = ensureObject<WhoamiResponse>(rawPayload, {});
+  const status = payload.data?.userStatus;
+  if (!status) return null;
+
+  return {
+    isSignedIn: Boolean(status.isSignedIn),
+    username: typeof status.username === "string" ? status.username : null
+  };
+}
+
 export async function fetchSlugByNumber(
   frontendQuestionId: string,
   cookie: string
@@ -194,8 +262,13 @@ export async function fetchSlugByNumber(
   const response = await requestUrl({
     url: "https://leetcode.com/api/problems/all/",
     method: "GET",
-    headers: buildHeaders({ titleSlug: "", cookie })
+    headers: buildHeaders({ titleSlug: "", cookie }),
+    throw: false
   });
+
+  if (response.status === 401 || response.status === 403) {
+    throw new SessionExpiredError();
+  }
 
   if (response.status !== 200) {
     return null;
@@ -248,15 +321,19 @@ async function fetchAcceptedSubmissions(
   { id: string; lang?: string; runtime?: string; memory?: string; timestamp?: number }[]
 > {
   const fallback = await requestUrl({
-      url: "https://leetcode.com/graphql",
-      method: "POST",
-      body: JSON.stringify({
-        query: SUBMISSION_LIST_QUERY,
-        variables: { offset: 0, limit, questionSlug: titleSlug }
-      }),
-      headers,
-      throw: false
-    });
+    url: "https://leetcode.com/graphql",
+    method: "POST",
+    body: JSON.stringify({
+      query: SUBMISSION_LIST_QUERY,
+      variables: { offset: 0, limit, questionSlug: titleSlug }
+    }),
+    headers,
+    throw: false
+  });
+
+  if (fallback.status === 401 || fallback.status === 403) {
+    throw new SessionExpiredError();
+  }
 
   const rawPayload: unknown = fallback.json ?? JSON.parse(fallback.text);
   const fallbackPayload = ensureObject<SubmissionListResponse>(rawPayload, {

@@ -1,13 +1,13 @@
 {
   "name": "obsidian-leetcode-template",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "type": "module",
   "private": true,
   "description": "Obsidian плагин: генерирует заметку-шаблон по ссылке LeetCode.",
   "main": "main.js",
   "scripts": {
-    "dev": "esbuild src/main.ts --bundle --outfile=main.js --sourcemap=inline --format=cjs --platform=node --external:obsidian --external:electron --external:@codemirror --external:@fortawesome",
-    "build": "esbuild src/main.ts --bundle --minify --outfile=main.js --format=cjs --platform=node --external:obsidian --external:electron --external:@codemirror --external:@fortawesome",
+    "dev": "esbuild src/main.ts --bundle --outfile=main.js --sourcemap=inline --format=cjs --platform=node --external:obsidian --external:electron --external:@electron/remote --external:@codemirror --external:@fortawesome",
+    "build": "esbuild src/main.ts --bundle --minify --outfile=main.js --format=cjs --platform=node --external:obsidian --external:electron --external:@electron/remote --external:@codemirror --external:@fortawesome",
     "lint": "bunx eslint . --ext .ts",
     "lint:fix": "bunx eslint . --ext .ts --fix"
   },

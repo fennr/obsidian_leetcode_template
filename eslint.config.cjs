@@ -9,7 +9,7 @@ const globals = require("globals");
 
 module.exports = [
   {
-    ignores: ["node_modules", "main.js", "bun.lock"]
+    ignores: ["node_modules", "main.js", "bun.lock", "scripts"]
   },
   importX.flatConfigs.recommended,
   importX.flatConfigs.typescript,

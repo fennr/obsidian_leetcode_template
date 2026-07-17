@@ -12,8 +12,8 @@ An Obsidian plugin that creates a structured note from a LeetCode problem link o
 
 ## Requirements
 
-- Obsidian 1.5.0+
-- LeetCode cookies: `csrftoken` and `LEETCODE_SESSION` (required for GraphQL requests)
+- Obsidian 1.5.0+ (desktop only)
+- LeetCode login via embedded browser window (or paste cookies as fallback)
 
 ## Installation and build
 
@@ -28,8 +28,7 @@ Copy `main.js` and `manifest.json` into `.obsidian/plugins/leetcode-template/` a
 
 ## Settings
 
-- **CSRF token** — `csrftoken` cookie value from leetcode.com
-- **LeetCode session** — `LEETCODE_SESSION` cookie value from leetcode.com
+- **LeetCode account** — Log in (embedded window), Log out, or Paste cookies
 - **Notes folder** — target folder for new notes (can be empty)
 - **Filename template** — placeholders: `{{number}}`, `{{slug}}`, `{{title}}`
 - **Include description** — include or skip the problem description
