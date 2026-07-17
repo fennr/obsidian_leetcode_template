@@ -6,13 +6,16 @@ import {
   Plugin,
   Setting,
   TFile,
-  TFolder} from "obsidian";
+  TFolder
+} from "obsidian";
 
+import { type AuthNotices, AuthService } from "./auth/AuthService";
 import {
   fetchAcceptedSolutions,
   fetchLatestAcceptedSolution,
   fetchQuestion,
   fetchSlugByNumber,
+  isSessionExpiredError,
   type QuestionMetadata,
   type SubmissionSolution
 } from "./leetcode";
@@ -21,7 +24,8 @@ import {
   buildNoteContent,
   formatSolutionsSection,
   type Language,
-  SOLUTIONS_HEADERS} from "./template";
+  SOLUTIONS_HEADERS
+} from "./template";
 
 type LocaleStrings = {
   commands: { createNote: string; importSolution: string };
@@ -38,7 +42,9 @@ type LocaleStrings = {
     noAccepted: string;
     updated: string;
     importError: string;
+    sessionExpired: string;
   };
+  auth: AuthNotices;
   errors: { pathConflict: (path: string) => string };
 };
 
@@ -62,10 +68,20 @@ const LOCALES: Record<Language, LocaleStrings> = {
       createFileFail: "Failed to create file",
       noActiveNote: "No active note",
       resolveFromFileFail: "Could not resolve problem (no link in frontmatter)",
-      noCookies: "Set csrftoken and LEETCODE_SESSION in settings",
+      noCookies: "Log in to LeetCode in settings",
       noAccepted: "No accepted solutions found",
       updated: "Solutions updated",
-      importError: "Failed to import solution"
+      importError: "Failed to import solution",
+      sessionExpired: "LeetCode session expired — please log in again"
+    },
+    auth: {
+      loggedIn: (username) => `Logged in to LeetCode as ${username}.`,
+      loginCancelled: "LeetCode login cancelled.",
+      loginTimeout:
+        "Login appeared to succeed but cookies could not be captured — try Paste cookies in settings.",
+      cookiesSaved: (username) => `Cookies saved. Logged in as ${username}.`,
+      loggedOut: "Logged out of LeetCode.",
+      cookiesInvalid: "Cookies are invalid or expired — try logging in again."
     },
     errors: {
       pathConflict: (path: string) => `Path ${path} is already a file.`
@@ -90,10 +106,20 @@ const LOCALES: Record<Language, LocaleStrings> = {
       createFileFail: "Не удалось создать файл",
       noActiveNote: "Нет активной заметки",
       resolveFromFileFail: "Не удалось определить задачу (нет ссылки в frontmatter)",
-      noCookies: "Укажите csrftoken и LEETCODE_SESSION в настройках",
+      noCookies: "Войдите в LeetCode в настройках",
       noAccepted: "Accepted решения не найдены",
       updated: "Решения обновлены",
-      importError: "Не удалось импортировать решение"
+      importError: "Не удалось импортировать решение",
+      sessionExpired: "Сессия LeetCode устарела — войдите снова"
+    },
+    auth: {
+      loggedIn: (username) => `Вход в LeetCode выполнен: ${username}.`,
+      loginCancelled: "Вход в LeetCode отменён.",
+      loginTimeout:
+        "Похоже, вход прошёл, но cookies не удалось захватить — попробуйте Paste cookies в настройках.",
+      cookiesSaved: (username) => `Cookies сохранены. Вы вошли как ${username}.`,
+      loggedOut: "Вы вышли из LeetCode.",
+      cookiesInvalid: "Cookies недействительны или устарели — войдите снова."
     },
     errors: {
       pathConflict: (path: string) => `Путь ${path} уже занят файлом.`
@@ -107,9 +133,11 @@ function getLocaleStrings(language: Language): LocaleStrings {
 
 export default class LeetCodeTemplatePlugin extends Plugin {
   settings = DEFAULT_SETTINGS;
+  auth!: AuthService;
 
   override async onload(): Promise<void> {
     await this.loadSettings();
+    this.auth = new AuthService(this, () => getLocaleStrings(this.settings.language).auth);
     const strings = getLocaleStrings(this.settings.language);
 
     this.addCommand({
@@ -132,10 +160,18 @@ export default class LeetCodeTemplatePlugin extends Plugin {
     const normalized =
       saved && typeof saved === "object" ? (saved as Partial<typeof DEFAULT_SETTINGS>) : null;
     this.settings = { ...DEFAULT_SETTINGS, ...(normalized ?? {}) };
+    if (this.settings.username === undefined) {
+      this.settings.username = null;
+    }
   }
 
   async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
+  }
+
+  private async promptRelogin(strings: LocaleStrings): Promise<void> {
+    new Notice(strings.notices.sessionExpired, 5000);
+    await this.auth.login();
   }
 
   private async handleCreateNote(): Promise<void> {
@@ -146,7 +182,24 @@ export default class LeetCodeTemplatePlugin extends Plugin {
     }
 
     const cookie = this.buildCookieHeader();
-    const slug = await resolveSlug(input, cookie);
+    if (!cookie) {
+      new Notice(strings.notices.noCookies);
+      await this.auth.login();
+      return;
+    }
+
+    let slug: string | null;
+    try {
+      slug = await resolveSlug(input, cookie);
+    } catch (error) {
+      if (isSessionExpiredError(error)) {
+        await this.promptRelogin(strings);
+        return;
+      }
+      const message = error instanceof Error ? error.message : strings.notices.unknownRequestError;
+      new Notice(`${strings.notices.fetchError}: ${message}`);
+      return;
+    }
     if (!slug) {
       new Notice(strings.notices.resolveSlugFail);
       return;
@@ -163,6 +216,10 @@ export default class LeetCodeTemplatePlugin extends Plugin {
         solutions = single ? [single] : [];
       }
     } catch (error) {
+      if (isSessionExpiredError(error)) {
+        await this.promptRelogin(strings);
+        return;
+      }
       const message = error instanceof Error ? error.message : strings.notices.unknownRequestError;
       new Notice(`${strings.notices.fetchError}: ${message}`);
       return;
@@ -202,6 +259,7 @@ export default class LeetCodeTemplatePlugin extends Plugin {
     const cookie = this.buildCookieHeader();
     if (!cookie) {
       new Notice(strings.notices.noCookies);
+      await this.auth.login();
       return;
     }
 
@@ -221,6 +279,10 @@ export default class LeetCodeTemplatePlugin extends Plugin {
       await this.app.vault.modify(file, updated);
       new Notice(strings.notices.updated);
     } catch (error) {
+      if (isSessionExpiredError(error)) {
+        await this.promptRelogin(strings);
+        return;
+      }
       const message = error instanceof Error ? error.message : strings.notices.importError;
       new Notice(message);
     }
