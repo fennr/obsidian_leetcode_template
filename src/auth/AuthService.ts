@@ -2,7 +2,7 @@ import { type App, Notice } from "obsidian";
 
 import { fetchWhoami } from "../leetcode";
 import type { LeetCodeTemplateSettings } from "../settings";
-import { clearLeetCodePartitionCookies, openLogin } from "./BrowserWindowLogin";
+import { clearLeetCodeAuthCookies, openLogin } from "./BrowserWindowLogin";
 import { CookiePasteModal } from "./CookiePasteModal";
 import { hasCookiePresence, sessionAfterWhoami } from "./sessionPolicy";
 import type { AuthCookies } from "./types";
@@ -76,7 +76,7 @@ export class AuthService {
     this.plugin.settings.leetcodeSession = "";
     this.plugin.settings.username = null;
     await this.plugin.saveSettings();
-    await clearLeetCodePartitionCookies();
+    await clearLeetCodeAuthCookies();
   }
 
   async login(): Promise<boolean> {
@@ -121,7 +121,7 @@ export class AuthService {
     this.plugin.settings.leetcodeSession = "";
     this.plugin.settings.username = null;
     await this.plugin.saveSettings();
-    await clearLeetCodePartitionCookies();
+    await clearLeetCodeAuthCookies();
     new Notice(notices.loggedOut, 4000);
   }
 

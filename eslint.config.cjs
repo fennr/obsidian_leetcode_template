@@ -25,7 +25,9 @@ module.exports = [
       },
       globals: {
         ...globals.node,
-        ...globals.es2022
+        ...globals.es2022,
+        ...globals.browser,
+        activeWindow: "readonly"
       }
     },
     plugins: {

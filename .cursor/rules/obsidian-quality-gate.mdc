@@ -1,0 +1,34 @@
+---
+description: End every task with Obsidian quality checks at 0 errors and 0 warnings
+alwaysApply: true
+---
+
+# Obsidian quality gate
+
+Before claiming a task done (code change, fix, or release), run the project quality checks and **do not finish until both are clean: 0 errors and 0 warnings**.
+
+## Required commands
+
+```bash
+bun run lint
+bun run build
+```
+
+Treat any ESLint **warning** as a failure. Fix it; do not leave warnings, suppress casually, or ship with `--quiet`.
+
+## What “quality” covers here
+
+This repo uses `eslint-plugin-obsidianmd` plus Obsidian community review expectations. In particular, keep green:
+
+- No `globalThis` for window/timers — use `window` or `activeWindow` (popout-safe)
+- `PluginSettingTab` implements `getSettingDefinitions()` (dual-support with `display()` if `minAppVersion` &lt; 1.13.0)
+- No vulnerable transitive deps when easy to override (e.g. `js-yaml` outside advisory ranges in `package.json` overrides)
+- Obsidian API conventions already enforced by the plugin’s eslint rules
+
+## Done criteria
+
+- [ ] `bun run lint` exits 0 with **no warnings**
+- [ ] `bun run build` exits 0
+- [ ] If the task touched auth/settings/manifest/deps, re-check the items above explicitly
+
+If lint reports warnings you cannot fix without a product decision, stop and ask — do not mark the task complete.

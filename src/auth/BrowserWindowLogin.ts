@@ -7,13 +7,20 @@ const LOGIN_CAPTURE_TIMEOUT_MS = 120_000;
 
 type CjsRequire = (id: string) => unknown;
 
-function nodeRequire(id: string): unknown {
-  const g = globalThis as typeof globalThis & {
+function hostWindow(): Window & {
+  require?: CjsRequire;
+  module?: { require?: CjsRequire };
+} {
+  // Prefer activeWindow for Obsidian popout compatibility (eslint-plugin-obsidianmd).
+  return (typeof activeWindow !== "undefined" ? activeWindow : window) as Window & {
     require?: CjsRequire;
     module?: { require?: CjsRequire };
-    activeWindow?: { require?: CjsRequire };
   };
-  const fn = g.activeWindow?.require ?? g.require ?? g.module?.require;
+}
+
+function nodeRequire(id: string): unknown {
+  const w = hostWindow();
+  const fn = w.require ?? w.module?.require;
   if (!fn) throw new Error("Node require() unavailable from renderer.");
   return fn(id);
 }
@@ -47,6 +54,7 @@ export function extractAuthCookies(cookies: ElectronCookieShape[]): AuthCookies 
 
 export interface ElectronCookiesApi {
   get(filter: { url?: string; domain?: string }): Promise<ElectronCookieShape[]>;
+  remove(url: string, name: string): Promise<void>;
 }
 
 export async function tryCaptureCookies(cookies: ElectronCookiesApi): Promise<AuthCookies | null> {
@@ -92,6 +100,7 @@ type BrowserWindowCtor = new (opts: BrowserWindowOptions) => ElectronBrowserWind
 interface ElectronSessionModule {
   fromPartition(partition: string): {
     clearStorageData(opts?: { storages?: string[] }): Promise<void>;
+    cookies: ElectronCookiesApi;
   };
 }
 
@@ -150,8 +159,8 @@ export function isReadyToCaptureAuth(url: string): boolean {
 }
 
 export async function openLogin(): Promise<OpenLoginResult> {
-  // Drop stale/anonymous partition cookies so we don't capture a dead session on first paint.
-  await clearLeetCodePartitionCookies();
+  // Keep Google/GitHub/CF cookies in the partition so re-login skips verification.
+  // Anonymous LEETCODE_SESSION on /accounts/login is ignored via isReadyToCaptureAuth.
   const BrowserWindowCtor = resolveBrowserWindow();
 
   return new Promise((resolve) => {
@@ -174,7 +183,7 @@ export async function openLogin(): Promise<OpenLoginResult> {
       if (settled) return;
       settled = true;
       if (timeoutHandle !== null) {
-        globalThis.clearTimeout(timeoutHandle);
+        window.clearTimeout(timeoutHandle);
         timeoutHandle = null;
       }
       resolve(result);
@@ -188,7 +197,7 @@ export async function openLogin(): Promise<OpenLoginResult> {
       }
     };
 
-    timeoutHandle = globalThis.setTimeout(() => {
+    timeoutHandle = window.setTimeout(() => {
       settle({ kind: "timeout" });
       safeClose();
     }, LOGIN_CAPTURE_TIMEOUT_MS);
@@ -228,17 +237,35 @@ export async function openLogin(): Promise<OpenLoginResult> {
   });
 }
 
-export async function clearLeetCodePartitionCookies(): Promise<void> {
+const AUTH_COOKIE_NAMES = new Set(["LEETCODE_SESSION", "csrftoken"]);
+const AUTH_COOKIE_URLS = ["https://leetcode.com/", "https://www.leetcode.com/"];
+
+function partitionSession(): { cookies: ElectronCookiesApi } | null {
   try {
     const electron = loadElectron();
     const session = electron.session ?? electron.remote?.session;
-    if (session) {
-      await session.fromPartition(PARTITION).clearStorageData({ storages: ["cookies"] });
-      return;
-    }
-    const remoteSession = loadElectronRemote()?.session;
-    if (remoteSession) {
-      await remoteSession.fromPartition(PARTITION).clearStorageData({ storages: ["cookies"] });
+    if (session) return session.fromPartition(PARTITION);
+    return loadElectronRemote()?.session?.fromPartition(PARTITION) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Remove only LeetCode auth cookies from the login partition.
+ * Leaves Google/GitHub/Cloudflare cookies so the next embedded login can skip re-verification.
+ */
+export async function clearLeetCodeAuthCookies(): Promise<void> {
+  try {
+    const sess = partitionSession();
+    if (!sess) return;
+    for (const url of AUTH_COOKIE_URLS) {
+      const list = await sess.cookies.get({ url });
+      for (const cookie of list) {
+        if (AUTH_COOKIE_NAMES.has(cookie.name)) {
+          await sess.cookies.remove(url, cookie.name);
+        }
+      }
     }
   } catch {
     /* best-effort */
