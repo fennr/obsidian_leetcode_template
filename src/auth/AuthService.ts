@@ -4,6 +4,7 @@ import { fetchWhoami } from "../leetcode";
 import type { LeetCodeTemplateSettings } from "../settings";
 import { clearLeetCodePartitionCookies, openLogin } from "./BrowserWindowLogin";
 import { CookiePasteModal } from "./CookiePasteModal";
+import { hasCookiePresence, sessionAfterWhoami } from "./sessionPolicy";
 import type { AuthCookies } from "./types";
 
 export type AuthNotices = {
@@ -31,10 +32,51 @@ export class AuthService {
     private readonly getNotices: () => AuthNotices
   ) {}
 
+  /** Fast presence check (may be stale until syncSession runs). */
   isLoggedIn(): boolean {
-    return Boolean(
-      this.plugin.settings.csrftoken.trim() && this.plugin.settings.leetcodeSession.trim()
+    return hasCookiePresence(
+      this.plugin.settings.csrftoken,
+      this.plugin.settings.leetcodeSession
     );
+  }
+
+  /**
+   * Validate cookies with LeetCode whoami. Clears stale cookies so UI shows Log in.
+   * @returns true if session is still valid
+   */
+  async syncSession(): Promise<boolean> {
+    const hasCookies = hasCookiePresence(
+      this.plugin.settings.csrftoken,
+      this.plugin.settings.leetcodeSession
+    );
+    if (!hasCookies) return false;
+
+    const header = cookieHeader({
+      csrftoken: this.plugin.settings.csrftoken.trim(),
+      LEETCODE_SESSION: this.plugin.settings.leetcodeSession.trim()
+    });
+    const who = await fetchWhoami(header);
+    const decision = sessionAfterWhoami({ hasCookies: true, whoami: who });
+
+    if (!decision.keepCookies) {
+      await this.invalidateStaleSession();
+      return false;
+    }
+
+    if (who?.username && who.username !== this.plugin.settings.username) {
+      this.plugin.settings.username = who.username;
+      await this.plugin.saveSettings();
+    }
+    return true;
+  }
+
+  /** Clear stored cookies without the "Logged out" notice (session died). */
+  async invalidateStaleSession(): Promise<void> {
+    this.plugin.settings.csrftoken = "";
+    this.plugin.settings.leetcodeSession = "";
+    this.plugin.settings.username = null;
+    await this.plugin.saveSettings();
+    await clearLeetCodePartitionCookies();
   }
 
   async login(): Promise<boolean> {

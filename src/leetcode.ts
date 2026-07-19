@@ -301,7 +301,6 @@ export async function fetchAcceptedSolutions(
   const headers = buildHeaders({ titleSlug, cookie });
   const submissions = await fetchAcceptedSubmissions(titleSlug, headers, limit);
   if (!submissions.length) return [];
-
   const results: SubmissionSolution[] = [];
   for (const submission of submissions) {
     const detail = await fetchSubmissionDetails(submission, { cookie, titleSlug });

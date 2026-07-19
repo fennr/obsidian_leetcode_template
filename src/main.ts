@@ -171,6 +171,7 @@ export default class LeetCodeTemplatePlugin extends Plugin {
 
   private async promptRelogin(strings: LocaleStrings): Promise<void> {
     new Notice(strings.notices.sessionExpired, 5000);
+    await this.auth.invalidateStaleSession();
     await this.auth.login();
   }
 
@@ -178,6 +179,12 @@ export default class LeetCodeTemplatePlugin extends Plugin {
     const strings = getLocaleStrings(this.settings.language);
     const input = await new LinkInputModal(this.app, strings).waitForInput();
     if (!input) {
+      return;
+    }
+
+    if (!(await this.auth.syncSession())) {
+      new Notice(strings.notices.noCookies);
+      await this.auth.login();
       return;
     }
 
@@ -256,6 +263,12 @@ export default class LeetCodeTemplatePlugin extends Plugin {
       return;
     }
 
+    if (!(await this.auth.syncSession())) {
+      new Notice(strings.notices.noCookies);
+      await this.auth.login();
+      return;
+    }
+
     const cookie = this.buildCookieHeader();
     if (!cookie) {
       new Notice(strings.notices.noCookies);
@@ -270,6 +283,11 @@ export default class LeetCodeTemplatePlugin extends Plugin {
 
       const resolved = await solutions;
       if (!resolved.length) {
+        const stillValid = await this.auth.syncSession();
+        if (!stillValid) {
+          await this.promptRelogin(strings);
+          return;
+        }
         new Notice(strings.notices.noAccepted);
         return;
       }

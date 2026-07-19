@@ -36,6 +36,17 @@ export class LeetCodeSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+    containerEl.createEl("p", {
+      text: "Checking LeetCode session…",
+      cls: "setting-item-description"
+    });
+    void this.renderAfterSync();
+  }
+
+  private async renderAfterSync(): Promise<void> {
+    await this.plugin.auth.syncSession();
+    const { containerEl } = this;
+    containerEl.empty();
 
     const loggedIn = this.plugin.auth.isLoggedIn();
     const username = this.plugin.settings.username;
