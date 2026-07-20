@@ -1,11 +1,10 @@
 {
   "id": "leetcode-template",
   "name": "LeetCode template",
-  "version": "0.1.9",
-  "minAppVersion": "1.5.0",
+  "version": "0.1.10",
+  "minAppVersion": "1.13.0",
   "description": "Generate LeetCode problem templates in your notes.",
   "author": "fennr",
   "authorUrl": "https://github.com/fennr",
   "isDesktopOnly": true
 }
-

@@ -7,15 +7,14 @@ const LOGIN_CAPTURE_TIMEOUT_MS = 120_000;
 
 type CjsRequire = (id: string) => unknown;
 
-function hostWindow(): Window & {
+type HostWindow = Window & {
   require?: CjsRequire;
   module?: { require?: CjsRequire };
-} {
+};
+
+function hostWindow(): HostWindow {
   // Prefer activeWindow for Obsidian popout compatibility (eslint-plugin-obsidianmd).
-  return (typeof activeWindow !== "undefined" ? activeWindow : window) as Window & {
-    require?: CjsRequire;
-    module?: { require?: CjsRequire };
-  };
+  return (typeof activeWindow !== "undefined" ? activeWindow : window) as HostWindow;
 }
 
 function nodeRequire(id: string): unknown {

@@ -1,6 +1,6 @@
 {
   "name": "obsidian-leetcode-template",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "type": "module",
   "private": true,
   "description": "Obsidian плагин: генерирует заметку-шаблон по ссылке LeetCode.",
@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "esbuild src/main.ts --bundle --outfile=main.js --sourcemap=inline --format=cjs --platform=node --external:obsidian --external:electron --external:@electron/remote --external:@codemirror --external:@fortawesome",
     "build": "esbuild src/main.ts --bundle --minify --outfile=main.js --format=cjs --platform=node --external:obsidian --external:electron --external:@electron/remote --external:@codemirror --external:@fortawesome",
-    "lint": "bunx eslint . --ext .ts",
+    "lint": "bunx eslint . --ext .ts --max-warnings 0",
     "lint:fix": "bunx eslint . --ext .ts --fix"
   },
   "devDependencies": {
@@ -20,16 +20,15 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.2",
-    "eslint-plugin-obsidianmd": "^0.1.9",
+    "eslint-plugin-obsidianmd": "^0.4.1",
     "eslint-plugin-simple-import-sort": "^12.1.1",
     "globals": "^17.0.0",
-    "js-yaml": "4.3.0",
     "obsidian": "1.13.1",
     "tslib": "^2.8.1",
     "typescript": "^5.6.3"
   },
   "overrides": {
-    "brace-expansion": "2.0.3",
+    "brace-expansion": "5.0.7",
     "fast-uri": "3.1.2",
     "flatted": "3.4.2",
     "js-yaml": "4.3.0",

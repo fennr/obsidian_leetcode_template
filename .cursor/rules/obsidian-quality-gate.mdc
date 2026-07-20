@@ -14,15 +14,16 @@ bun run lint
 bun run build
 ```
 
-Treat any ESLint **warning** as a failure. Fix it; do not leave warnings, suppress casually, or ship with `--quiet`.
+`bun run lint` uses official `eslint-plugin-obsidianmd` **`configs.recommended`** with `--max-warnings 0`. Treat any ESLint **warning** as a failure. Fix it; do not leave warnings, suppress casually, or ship with `--quiet`.
+
+Official sources: [obsidianmd/eslint-plugin](https://github.com/obsidianmd/eslint-plugin), [plugin-review.md](https://github.com/obsidianmd/obsidian-releases/blob/master/plugin-review.md).
 
 ## What “quality” covers here
 
-This repo uses `eslint-plugin-obsidianmd` plus Obsidian community review expectations. In particular, keep green:
-
+- Lint gate = official `recommended` (includes `obsidianmd/no-unsupported-api`)
 - No `globalThis` for window/timers — use `window` or `activeWindow` (popout-safe)
-- `PluginSettingTab` implements `getSettingDefinitions()` (dual-support with `display()` if `minAppVersion` &lt; 1.13.0)
-- No vulnerable transitive deps when easy to override (e.g. `js-yaml` outside advisory ranges in `package.json` overrides)
+- `PluginSettingTab` uses only `getSettingDefinitions()` + `this.update()` (`minAppVersion` ≥ 1.13.0; no `display()`)
+- No direct `js-yaml` in `devDependencies` — pin via `overrides` only (`"js-yaml": "4.3.0"`)
 - Obsidian API conventions already enforced by the plugin’s eslint rules
 
 ## Done criteria
