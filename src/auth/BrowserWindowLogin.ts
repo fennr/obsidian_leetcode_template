@@ -14,7 +14,7 @@ type HostWindow = Window & {
 
 function hostWindow(): HostWindow {
   // Prefer activeWindow for Obsidian popout compatibility (eslint-plugin-obsidianmd).
-  return (typeof activeWindow !== "undefined" ? activeWindow : window) as HostWindow;
+  return typeof activeWindow !== "undefined" ? activeWindow : window;
 }
 
 function nodeRequire(id: string): unknown {
